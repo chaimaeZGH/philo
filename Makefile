@@ -1,11 +1,11 @@
 CC = cc
 CFLAGS = -Wall -Wextra -Werror  #-g -fsanitize=address
 
-SRCS = philo.c
+SRCS = philosophers.c
 OBJS = $(SRCS:.c=.o)
 
-HEADER = philo.h
-NAME = philo
+HEADER = philosophers.h
+NAME = philosophers
 
 all: $(NAME)
 
