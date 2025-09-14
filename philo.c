@@ -6,7 +6,7 @@
 /*   By: mac <mac@student.42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 21:07:22 by czghoumi          #+#    #+#             */
-/*   Updated: 2025/09/14 15:26:44 by mac              ###   ########.fr       */
+/*   Updated: 2025/09/14 15:37:39 by mac              ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -55,6 +55,7 @@ int main()
     pthread_mutex_init(&lock, NULL);
     t_check data1;
     t_check data2;
+    //  t_check data2;
     
     data1.i=id1;
     data1.lock=&lock;
