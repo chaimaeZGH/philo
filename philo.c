@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   philo.c                                            :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: czghoumi <czghoumi@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mac <mac@student.42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 21:07:22 by czghoumi          #+#    #+#             */
-/*   Updated: 2025/09/14 11:16:15 by czghoumi         ###   ########.fr       */
+/*   Updated: 2025/09/14 15:26:44 by mac              ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,7 +17,7 @@
     
 //     if (ac < 5 || ac > 6)
 //     {
-//          printf("invalid number of args");
+//          printf("invalid number of argssss");
 //          return (1);
 //     }
 //     int number_of_philosophers = atoi(av[1]); 
