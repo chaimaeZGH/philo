@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   philo.h                                            :+:      :+:    :+:   */
+/*   philosophers.h                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mac <mac@student.42.fr>                    +#+  +:+       +#+        */
+/*   By: czghoumi <czghoumi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 21:07:22 by czghoumi          #+#    #+#             */
-/*   Updated: 2025/09/14 16:31:53 by mac              ###   ########.fr       */
+/*   Updated: 2025/09/14 17:05:45 by czghoumi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -27,7 +27,7 @@ typedef struct s_philo
     int time_to_die ; 
     int time_to_eat; 
     int time_to_sleep;
-    int number_of_times_each_philosopher_must_eat;
+    int number_each_philosopher_must_eat;
 }					t_philo;
 
 #endif
