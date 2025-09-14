@@ -16,7 +16,10 @@
 // {
     
 //     if (ac < 5 || ac > 6)
-//         return 0;
+//     {
+//          printf("invalid number of args");
+//          return (1);
+//     }
 //     int number_of_philosophers = atoi(av[1]); 
 //     int time_to_die = atoi(av[2]); 
 //     int time_to_eat = atoi(av[3]); 
