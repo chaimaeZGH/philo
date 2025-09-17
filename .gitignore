@@ -1,0 +1,9 @@
+# Build artifacts
+*.o
+philosophers
+
+# macOS files
+.DS_Store
+
+# IDE files
+.vscode/
