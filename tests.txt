@@ -1,0 +1,59 @@
+./philosophers 5 179 60 60
+Philosopher 2 is sleeping
+Philosopher 4 died
+Philosopher 1 is eating
+Philosopher 1 is sleeping
+Philosopher 3 picked up right fork
+Philosopher 3 is eating
+Philosopher 3 is sleeping
+
+./philosophers 4 200 100 100
+Philosopher 1 died
+Philosopher 3 died
+
+./philosophers 5 200 100 100
+Philosopher 2 is sleeping
+Philosopher 1 died
+Philosopher 4 died
+Philosopher 3 died
+
+
+
+czghoumi@c2r5p7 philo % ./philosophers 5 800 200 200 (no timestamp)
+Philosopher 2 is thinking
+Philosopher 4 is thinking
+Philosopher 2 picked up left fork
+Philosopher 2 picked up right fork
+
+
+./philosophers 200 1000 200 200 (bad death detector)
+
+ printf used 
+
+ no global death routine
+ 
+ overlapping prints
+
+
+
+ TODO :
+
+ DISCARD the old death checks per philo
+ ADD a death detector routine with a dedicated death or meal 
+ protect all meal checks (times_must_eat && deaths)
+ ADD a function that prints using write with a dedicated mutex for writting
+
+
+Things to consider :
+
+starting time for all philos
+grabing forks logic
+there is no negative time so all the time calc's and cmp's should be unsigned longs
+threads should communicate with each other to find about a death
+
+
+Pros :
+
+memory efficient
+id % 2 sync 
+ 
