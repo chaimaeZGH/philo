@@ -6,11 +6,42 @@
 /*   By: czghoumi <czghoumi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 21:07:22 by czghoumi          #+#    #+#             */
-/*   Updated: 2025/09/17 16:42:04 by czghoumi         ###   ########.fr       */
+/*   Updated: 2025/09/17 19:00:39 by czghoumi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philosophers.h"
+
+int	ft_atoi(const char *str)
+{
+	unsigned long long	result;
+	int					sign;
+	int					i;
+
+	i = 0;
+	sign = 1;
+	result = 0;
+	while ((str[i] >= 9 && str[i] <= 13) || str[i] == 32)
+		i++;
+	if (str[i] == '-' || str[i] == '+') 
+	{
+		if (str[i] == '-')
+			sign = -1;
+		i++;
+	}
+	while (str[i] >= '0' && str[i] <= '9') 
+	{
+		result = (result * 10) + (str[i] - '0');
+		if (result > 9223372036854775807 && sign == -1)
+			return (-1);
+		if (result >= 9223372036854775807 && sign == 1)
+			return (-1);
+		i++;
+	}
+    if(str[i]!='\0')
+        return -1;
+	return (result * sign);
+}
 
 void	ft_putlong(unsigned long tim)
 {
@@ -60,7 +91,9 @@ unsigned long get_time_ms(void)
 
 int check_death(t_philo *philo)
 {
-    unsigned long now = get_time_ms();
+    unsigned long now;
+    
+    now = get_time_ms();
     if ((int)(now - philo->last_meal_time) > philo->data->time_to_die && philo->data->simulation_running)
     {
         pthread_mutex_lock(philo->data->writing);
@@ -84,6 +117,7 @@ void smart_sleep(t_philo *philo, int ms)
     }
 }
 
+// Updated monitor routine
 void *monitor_routine(void *arg) 
 {
     t_philo *philos = (t_philo *)arg;
@@ -91,6 +125,18 @@ void *monitor_routine(void *arg)
     
     while (data->simulation_running == 1)
     {
+        if (data->times_must_eat != -1)
+        {
+            pthread_mutex_lock(data->meal_check);
+            if (data->philosophers_finished >= data->number_of_philo)
+            {
+                data->simulation_running = 0;
+                pthread_mutex_unlock(data->meal_check);
+                return NULL;
+            }
+            pthread_mutex_unlock(data->meal_check);
+        }
+        
         for (int i = 0; i < data->number_of_philo; i++)
         {
             unsigned long now = get_time_ms();
@@ -111,11 +157,11 @@ void *monitor_routine(void *arg)
     return NULL;
 }
 
+// Updated philosopher routine
 void *philo_routine(void *arg)
 {
     t_philo *philo = (t_philo *)arg;
     t_data *data = philo->data;
-    int eat_count = 0;
 
     if (data->number_of_philo == 1)
     {
@@ -124,18 +170,21 @@ void *philo_routine(void *arg)
         pthread_mutex_unlock(data->writing);
         pthread_mutex_lock(philo->left_fork);
         pthread_mutex_lock(data->writing);
-        write_state(philo->philo_id, (get_time_ms() - data->start_time), "picked up left fork");
+        write_state(philo->philo_id, (get_time_ms() - data->start_time), "has taken a left fork");
         pthread_mutex_unlock(data->writing);
         smart_sleep(philo, data->time_to_die + 10);
         pthread_mutex_unlock(philo->left_fork);
         return NULL;
     }
+    
     if (philo->philo_id % 2 == 1)
         smart_sleep(philo, 1);
-    while (data->simulation_running == 1 && (data->times_must_eat == -1 || eat_count < data->times_must_eat))
+        
+    while (data->simulation_running == 1 && (data->times_must_eat == -1 || philo->meals_eaten < data->times_must_eat))
     {
         if (data->simulation_running == 0)
             break;
+            
         pthread_mutex_lock(data->writing);
         if (data->simulation_running == 1)
             write_state(philo->philo_id, (get_time_ms() - data->start_time), "is thinking");
@@ -143,16 +192,19 @@ void *philo_routine(void *arg)
 
         if (data->simulation_running == 0)
             break;
+            
         pthread_mutex_lock(philo->left_fork);
         if (data->simulation_running == 0)
         {
             pthread_mutex_unlock(philo->left_fork);
             break;
         }
+        
         pthread_mutex_lock(data->writing);
         if (data->simulation_running == 1)
-            write_state(philo->philo_id, (get_time_ms() - data->start_time), "picked up left fork");
+            write_state(philo->philo_id, (get_time_ms() - data->start_time), "has taken a left fork");
         pthread_mutex_unlock(data->writing);
+        
         pthread_mutex_lock(philo->right_fork);
         if (data->simulation_running == 0)
         {
@@ -160,21 +212,36 @@ void *philo_routine(void *arg)
             pthread_mutex_unlock(philo->left_fork);
             break;
         }
+        
         pthread_mutex_lock(data->writing);
         if (data->simulation_running == 1)
-            write_state(philo->philo_id, (get_time_ms() - data->start_time), "picked up right fork");
+            write_state(philo->philo_id, (get_time_ms() - data->start_time), "has taken a right fork");
         pthread_mutex_unlock(data->writing);
+        
         pthread_mutex_lock(data->writing);
         if (data->simulation_running == 1)
             write_state(philo->philo_id, (get_time_ms() - data->start_time), "is eating");
         pthread_mutex_unlock(data->writing);
+        
         philo->last_meal_time = get_time_ms();
-        eat_count++;
         smart_sleep(philo, data->time_to_eat);
+        
+        philo->meals_eaten++;
+        
+        // Check if this philosopher finished all required meals
+        if (data->times_must_eat != -1 && philo->meals_eaten >= data->times_must_eat)
+        {
+            pthread_mutex_lock(data->meal_check);
+            data->philosophers_finished++;
+            pthread_mutex_unlock(data->meal_check);
+        }
+        
         pthread_mutex_unlock(philo->right_fork);
         pthread_mutex_unlock(philo->left_fork);
+        
         if (data->simulation_running == 0)
             break;
+            
         pthread_mutex_lock(data->writing);
         if (data->simulation_running == 1)
             write_state(philo->philo_id, (get_time_ms() - data->start_time), "is sleeping");
@@ -183,42 +250,6 @@ void *philo_routine(void *arg)
         smart_sleep(philo, data->time_to_sleep);
     }
     return NULL;
-}
-
-int	ft_atoi(const char *str)
-{
-	unsigned long long	result;
-	int					sign;
-	int					i;
-
-	i = 0;
-	sign = 1;
-	result = 0;
-	while ((str[i] >= 9 && str[i] <= 13) || str[i] == 32)
-		i++;
-	if (str[i] == '-' || str[i] == '+') 
-	{
-		if (str[i] == '-')
-			sign = -1;
-		i++;
-	}
-	while (str[i] >= '0' && str[i] <= '9') 
-	{
-		result = (result * 10) + (str[i] - '0');
-		if (result > 9223372036854775807 && sign == -1)
-			return (-1);
-		if (result >= 9223372036854775807 && sign == 1)
-			return (-1);
-		i++;
-	}
-    if(str[i]!='\0')
-        return -1;
-	return (result * sign);
-}
-
-void ll()
-{
-	system("leaks philosophers");
 }
 
 int main(int ac, char **av)
@@ -233,19 +264,27 @@ int main(int ac, char **av)
         return (1);
     }
     if (ft_atoi(av[2]) < 60 || ft_atoi(av[3]) < 60
-		|| ft_atoi(av[4]) < 60 || (ft_atoi(av[1]) > 200 || ft_atoi(av[1]) < 1 ))
+        || ft_atoi(av[4]) < 60 || (ft_atoi(av[1]) > 200 || ft_atoi(av[1]) < 1 ))
         return (printf("invalid number of argssss"),1);
     if (ac == 6 && ft_atoi(av[5]) <= 0)
-		return (printf("B ERROR INPUT NC"),1);
+        return (printf("B ERROR INPUT NC"),1);
+        
     pthread_mutex_t writ;
+    pthread_mutex_t meal_mutex;
+    
     my_data.number_of_philo = ft_atoi(av[1]);
     my_data.time_to_die = ft_atoi(av[2]);
     my_data.time_to_eat = ft_atoi(av[3]);
     my_data.time_to_sleep = ft_atoi(av[4]);
-	my_data.simulation_running = 1;
+    my_data.simulation_running = 1;
+    my_data.philosophers_finished = 0;
     my_data.start_time = get_time_ms();
+    
     pthread_mutex_init(&writ, NULL);
+    pthread_mutex_init(&meal_mutex, NULL);
     my_data.writing = &writ;
+    my_data.meal_check = &meal_mutex;
+    
     if (ac == 6)
         my_data.times_must_eat = ft_atoi(av[5]);
     else
@@ -254,27 +293,33 @@ int main(int ac, char **av)
     pthread_mutex_t forks[my_data.number_of_philo];
     while (i < my_data.number_of_philo)
         pthread_mutex_init(&forks[i++], NULL);
+        
     t_philo *philos;
     philos = malloc(sizeof(t_philo) * my_data.number_of_philo);
-	if (!philos)
-		return (0);
-	i = 0;
-	while (i < my_data.number_of_philo)
-	{
-		philos[i].philo_id = i+1;
-		philos[i].data = &my_data;
-		philos[i].left_fork = &forks[i];
-		philos[i].right_fork = &forks[(i + 1) % my_data.number_of_philo];
-		philos[i].last_meal_time = get_time_ms();
-		pthread_create(&philos[i].thread, NULL, philo_routine, &philos[i]);
-		i++;
-	}
+    if (!philos)
+        return (0);
+        
+    i = 0;
+    while (i < my_data.number_of_philo)
+    {
+        philos[i].philo_id = i+1;
+        philos[i].data = &my_data;
+        philos[i].left_fork = &forks[i];
+        philos[i].right_fork = &forks[(i + 1) % my_data.number_of_philo];
+        philos[i].last_meal_time = get_time_ms();
+        philos[i].meals_eaten = 0;
+        pthread_create(&philos[i].thread, NULL, philo_routine, &philos[i]);
+        i++;
+    }
+    
     pthread_t monitor_thread;
     pthread_create(&monitor_thread, NULL, monitor_routine, philos);
-	i = 0;
-	while (i < my_data.number_of_philo)
-		pthread_join(philos[i++].thread, NULL);
+    
+    i = 0;
+    while (i < my_data.number_of_philo)
+        pthread_join(philos[i++].thread, NULL);
     pthread_join(monitor_thread, NULL);
-	free(philos);
-	// atexit(ll);
+    
+    free(philos);
+    return 0;
 }
