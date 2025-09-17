@@ -41,10 +41,7 @@ typedef struct s_philo
     int philo_id;
     pthread_mutex_t *left_fork;
     pthread_mutex_t *right_fork;
-//
-    
-    pthread_mutex_t *meals;
-//
+    int eat_count;
     t_data *data;
     unsigned long last_meal_time;
 } t_philo;  
