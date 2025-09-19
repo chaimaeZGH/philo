@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   philosophers.c                                     :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: czghoumi <czghoumi@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mac <mac@student.42.fr>                    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 21:07:22 by czghoumi          #+#    #+#             */
-/*   Updated: 2025/09/19 01:40:58 by czghoumi         ###   ########.fr       */
+/*   Updated: 2025/09/19 12:28:56 by mac              ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -23,13 +23,13 @@ int	ft_atoi(const char *str)
 	result = 0;
 	while ((str[i] >= 9 && str[i] <= 13) || str[i] == 32)
 		i++;
-	if (str[i] == '-' || str[i] == '+') 
+	if (str[i] == '-' || str[i] == '+')
 	{
 		if (str[i] == '-')
 			sign = -1;
 		i++;
 	}
-	while (str[i] >= '0' && str[i] <= '9') 
+	while (str[i] >= '0' && str[i] <= '9')
 	{
 		result = (result * 10) + (str[i] - '0');
 		if (result > 9223372036854775807)
@@ -233,16 +233,8 @@ t_philo	*second_parth(t_data *my_data)
 // 	system("leaks philosophers");
 // }
 
-int	main(int ac, char **av)
+int	chek_vars(int ac, char **av)
 {
-	t_data			my_data;
-	int				i;
-	pthread_mutex_t	writ;
-	pthread_mutex_t	meal_mutex;
-	pthread_mutex_t	simulation_mutex;
-	t_philo			*philos;
-
-	i = 0;
 	if (ac < 5 || ac > 6)
 		return (printf("invalid number of argssss"), 1);
 	if (ft_atoi(av[2]) < 60 || ft_atoi(av[3]) < 60
@@ -250,6 +242,19 @@ int	main(int ac, char **av)
 		return (printf("invalid number of argssss"), 1);
 	if (ac == 6 && ft_atoi(av[5]) < 0)
 		return (printf("invalid number of argssss"), 1);
+	return (0);
+}
+
+int	main(int ac, char **av)
+{
+	t_data			my_data;
+	pthread_mutex_t	writ;
+	pthread_mutex_t	meal_mutex;
+	pthread_mutex_t	simulation_mutex;
+	t_philo			*philos;
+
+	if (chek_vars(ac, av) == 1)
+		return (1);
 	my_data = make_data(ac, av);
 	pthread_mutex_init(&writ, NULL);
 	pthread_mutex_init(&meal_mutex, NULL);
