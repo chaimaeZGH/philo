@@ -1,7 +1,7 @@
 CC = cc
-CFLAGS = -Wall -Wextra -Werror  #-g -fsanitize=thread
+CFLAGS = -Wall -Wextra -Werror  -O3 #-g -fsanitize=thread
 
-SRCS = philosophers.c actions.c
+SRCS = philosophers.c actions.c help_function.c main_helper.c
 OBJS = $(SRCS:.c=.o)
 
 HEADER = philosophers.h
