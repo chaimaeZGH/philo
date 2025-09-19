@@ -6,7 +6,7 @@
 /*   By: czghoumi <czghoumi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 21:07:22 by czghoumi          #+#    #+#             */
-/*   Updated: 2025/09/18 23:51:31 by czghoumi         ###   ########.fr       */
+/*   Updated: 2025/09/19 14:29:10 by czghoumi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -54,6 +54,7 @@ void			to_write(t_philo *philo, char *str);
 void			one_philo(t_philo *philo);
 void			smart_sleep(t_philo *philo, int ms);
 void			write_state(int id, unsigned long tim, char *str);
-int is_simulation_running(t_data *data);
+int				is_simulation_running(t_data *data);
+void	ft_usleep(size_t milliseconds);
 
 #endif
