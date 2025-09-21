@@ -51,7 +51,7 @@ int	check_meals(t_philo	*philo)
 	while (i < data->number_of_philo)
 	{
 		pthread_mutex_lock(data->simulation_mutex);
-		if (philo[i].meals_eaten < data->number_of_philo)
+		if (philo[i].meals_eaten < data->times_must_eat)
 		{
 			pthread_mutex_unlock(data->simulation_mutex);
 			return (0);
