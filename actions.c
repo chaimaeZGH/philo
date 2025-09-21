@@ -6,293 +6,117 @@
 /*   By: czghoumi <czghoumi@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/08/19 21:07:22 by czghoumi          #+#    #+#             */
-/*   Updated: 2025/09/19 15:05:37 by czghoumi         ###   ########.fr       */
+/*   Updated: 2025/09/21 21:32:05 by czghoumi         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
-#include "philosophers.h"
+#include "philo.h"
 
-void	ft_usleep(size_t milliseconds)
+int	check_death(t_philo	*philo)
 {
-	size_t	start;
+	int			i;
+	long long	current_time;
+	t_data		*data;
 
-	start = time_ms();
-	while ((time_ms() - start) < milliseconds)
-		usleep(1000);
+	data = philo->data;
+	i = 0;
+	while (i < data->number_of_philo)
+	{
+		pthread_mutex_lock(data->simulation_mutex);
+		current_time = time_ms();
+		if ((int)(current_time - philo[i].last_meal_time) > data->time_to_die)
+		{
+			if (data->simulation_running == 1)
+			{
+				data->simulation_running = 0;
+				check_todie(philo[i]);
+			}
+			return (1);
+		}
+		pthread_mutex_unlock(data->simulation_mutex);
+		i++;
+	}
+	return (0);
 }
 
-int	is_simulation_running(t_data *data)
+int	check_meals(t_philo	*philo)
 {
-	int	running;
+	int		i;
+	t_data	*data;
 
+	data = philo->data;
+	if (data->times_must_eat == -1)
+		return (0);
+	i = 0;
+	while (i < data->number_of_philo)
+	{
+		pthread_mutex_lock(data->simulation_mutex);
+		if (philo[i].meals_eaten < data->number_of_philo)
+		{
+			pthread_mutex_unlock(data->simulation_mutex);
+			return (0);
+		}
+		pthread_mutex_unlock(data->simulation_mutex);
+		i++;
+	}
 	pthread_mutex_lock(data->simulation_mutex);
-	running = data->simulation_running;
+	data->simulation_running = 0;
 	pthread_mutex_unlock(data->simulation_mutex);
-	return (running);
+	return (1);
 }
 
 void	*monitor_routine(void *arg)
 {
-	t_philo			*philos;
-	t_data			*data;
-	int				i;
-	unsigned long	now;
-	
-	philos = (t_philo *)arg;
-	data = philos[0].data;
-	while (is_simulation_running(data) == 1)
+	t_philo	*philo;
+
+	philo = (t_philo *)arg;
+	while (1)
 	{
-		if (data->times_must_eat != -1)
-		{
-			pthread_mutex_lock(data->meal_check);
-			if (data->philosophers_finished >= data->number_of_philo)
-			{
-				pthread_mutex_lock(data->simulation_mutex);		
-				data->simulation_running = 0;
-				pthread_mutex_unlock(data->simulation_mutex);
-				
-				pthread_mutex_unlock(data->meal_check);
-				return NULL;
-			}
-			pthread_mutex_unlock(data->meal_check);
-		}
-		i = 0;
-		while (i < data->number_of_philo)
-		{
-			now = time_ms();
-			pthread_mutex_lock(data->writing);
-			unsigned long last_meal = philos[i].last_meal_time;//
-			pthread_mutex_unlock(data->writing);//
-			if ((int)(now - last_meal) > data->time_to_die)//
-			{
-				pthread_mutex_lock(data->writing);
-				if (is_simulation_running(data) == 1)
-				{
-					write_state(philos[i].philo_id, (time_ms() - data->start_time), "died");
-					pthread_mutex_lock(data->simulation_mutex);	
-					data->simulation_running = 0;
-					pthread_mutex_unlock(data->simulation_mutex);
-				}
-				pthread_mutex_unlock(data->writing);
-				return NULL;
-			}
-			i++;
-		}
-		ft_usleep(1000);
+		if (check_death(philo) || check_meals(philo))
+			break ;
+		usleep(500);
 	}
-	return NULL;
+	return (NULL);
 }
 
-void    *philo_routine(void *arg)
+void	second_pat(t_philo	*philo)
+{
+	t_data	*data;
+
+	data = philo->data;
+	to_write(philo, "is thinking");
+	pthread_mutex_lock(philo->left_fork);
+	to_write(philo, "has taken a left fork");
+	pthread_mutex_lock(philo->right_fork);
+	to_write(philo, "has taken a right fork");
+	to_write(philo, "is eating");
+	pthread_mutex_lock(data->simulation_mutex);
+	philo->last_meal_time = time_ms();
+	philo->meals_eaten++;
+	pthread_mutex_unlock(data->simulation_mutex);
+	smart_sleep(philo, data->time_to_eat);
+	pthread_mutex_unlock(philo->right_fork);
+	pthread_mutex_unlock(philo->left_fork);
+	to_write(philo, "is sleeping");
+}
+
+void	*philo_routine(void *arg)
 {
 	t_philo	*philo;
 	t_data	*data;
-	
+
 	philo = (t_philo *)arg;
 	data = philo->data;
 	if (data->number_of_philo == 1)
-		return(one_philo(philo), NULL);
-	if (philo->philo_id % 2 == 1)
-		smart_sleep(philo, 1);
-	
-	while (is_simulation_running(data) == 1 && (data->times_must_eat == -1 
-			|| philo->meals_eaten < data->times_must_eat))
+		return (one_philo(philo), NULL);
+	if (philo->philo_id % 2 == 0)
+		smart_sleep(philo, data->time_to_eat / 2);
+	while (1)
 	{
-		if (is_simulation_running(data) == 0)
-			break ;
-		to_write(philo,"is thinking");
-		if (is_simulation_running(data) == 0)
-			break ;
-		pthread_mutex_lock(philo->left_fork);
-		if (is_simulation_running(data) == 0)
-		{
-			pthread_mutex_unlock(philo->left_fork);
-			break ;
-		}
-		to_write(philo,"has taken a left fork");
-		pthread_mutex_lock(philo->right_fork);
-		if (is_simulation_running(data) == 0)
-		{
-			pthread_mutex_unlock(philo->right_fork);
-			pthread_mutex_unlock(philo->left_fork);
-			break ;
-		}
-		to_write(philo,"has taken a right fork");
-		to_write(philo,"is eating");
-		pthread_mutex_lock(data->writing);
-		philo->last_meal_time = time_ms();
-		pthread_mutex_unlock(data->writing);
-		smart_sleep(philo, data->time_to_eat);
-		philo->meals_eaten++;
-		if (data->times_must_eat != -1 && philo->meals_eaten >= data->times_must_eat)
-		{
-			pthread_mutex_lock(data->meal_check);
-			data->philosophers_finished++;
-			pthread_mutex_unlock(data->meal_check);
-		}
-		pthread_mutex_unlock(philo->right_fork);
-		pthread_mutex_unlock(philo->left_fork);
-		if (is_simulation_running(data) == 0)
-			break ;
-		to_write(philo,"is sleeping");
+		second_pat(philo);
 		smart_sleep(philo, data->time_to_sleep);
+		if (is_simulation_running(data) == 0)
+			break ;
 	}
-	return NULL;
+	return (NULL);
 }
-
-
-
-
-
-
-
-
-
-
-// void	stop_simulation(t_data *data)
-// {
-// 	pthread_mutex_lock(data->simulation_mutex);
-// 	data->simulation_running = 0;
-// 	pthread_mutex_unlock(data->simulation_mutex);
-// }
-
-// int	check_philosophers_finished(t_data *data)
-// {
-// 	if (data->times_must_eat == -1)
-// 		return (0);
-// 	pthread_mutex_lock(data->meal_check);
-// 	if (data->philosophers_finished >= data->number_of_philo)
-// 	{
-// 		stop_simulation(data);
-// 		pthread_mutex_unlock(data->meal_check);
-// 		return (1);
-// 	}
-// 	pthread_mutex_unlock(data->meal_check);
-// 	return (0);
-// }
-
-// int	check_philo_death(t_philo *philos, t_data *data, int i)
-// {
-// 	unsigned long	now;
-// 	unsigned long	last_meal;
-// 	unsigned long	tim;
-
-// 	now = time_ms();
-// 	pthread_mutex_lock(data->writing);
-// 	last_meal = philos[i].last_meal_time;
-// 	pthread_mutex_unlock(data->writing);
-// 	tim = data->start_time;
-// 	if ((int)(now - last_meal) > data->time_to_die)
-// 	{
-// 		pthread_mutex_lock(data->writing);
-// 		if (is_simulation_running(data) == 1)
-// 		{
-// 			write_state(philos[i].philo_id, (time_ms() - tim), "died");
-// 			stop_simulation(data);
-// 		}
-// 		pthread_mutex_unlock(data->writing);
-// 		return (1);
-// 	}
-// 	return (0);
-// }
-
-// void	*monitor_routine(void *arg)
-// {
-// 	t_philo	*philos;
-// 	t_data	*data;
-// 	int		i;
-
-// 	philos = (t_philo *)arg;
-// 	data = philos[0].data;
-// 	while (is_simulation_running(data) == 1)
-// 	{
-// 		if (check_philosophers_finished(data))
-// 			return (NULL);
-// 		i = 0;
-// 		while (i < data->number_of_philo)
-// 		{
-// 			if (check_philo_death(philos, data, i))
-// 				return (NULL);
-// 			i++;
-// 		}
-// 		ft_usleep(500);
-// 	}
-// 	return (NULL);
-// }
-
-// void	update_meal_time(t_philo *philo, t_data *data)
-// {
-// 	pthread_mutex_lock(data->writing);
-// 	philo->last_meal_time = time_ms();
-// 	pthread_mutex_unlock(data->writing);
-// }
-
-// void	increment_meals_eaten(t_philo *philo, t_data *data)
-// {
-// 	int	tim_d;
-
-// 	tim_d = data->times_must_eat;
-// 	philo->meals_eaten++;
-// 	if (tim_d != -1 && philo->meals_eaten >= tim_d)
-// 	{
-// 		pthread_mutex_lock(data->meal_check);
-// 		data->philosophers_finished++;
-// 		pthread_mutex_unlock(data->meal_check);
-// 	}
-// }
-
-// int	take_forks(t_philo *philo)
-// {
-// 	pthread_mutex_lock(philo->left_fork);
-// 	to_write(philo, "has taken a left fork");
-// 	pthread_mutex_lock(philo->right_fork);
-// 	to_write(philo, "has taken a right fork");
-// 	return (1);
-// }
-
-// void	put_down_forks(t_philo *philo)
-// {
-// 	pthread_mutex_unlock(philo->right_fork);
-// 	pthread_mutex_unlock(philo->left_fork);
-// }
-
-// int	philo_eat(t_philo *philo, t_data *data)
-// {
-// 	if (!take_forks(philo))
-// 		return (0);
-// 	to_write(philo, "is eating");
-// 	update_meal_time(philo, data);
-// 	smart_sleep(philo, data->time_to_eat);
-// 	increment_meals_eaten(philo, data);
-// 	put_down_forks(philo);
-// 	return (1);
-// }
-
-// int	should_continue(t_philo *philo, t_data *data)
-// {
-// 	return (is_simulation_running(data) == 1 
-// 		&& (data->times_must_eat == -1 
-// 			|| philo->meals_eaten < data->times_must_eat));
-// }
-
-// void	*philo_routine(void *arg)
-// {
-// 	t_philo	*philo;
-// 	t_data	*data;
-
-// 	philo = (t_philo *)arg;
-// 	data = philo->data;
-// 	if (data->number_of_philo == 1)
-// 		return (one_philo(philo), NULL);
-// 	if (philo->philo_id % 2 == 1)
-// 		smart_sleep(philo, 1);
-// 	while (should_continue(philo, data))
-// 	{
-// 		to_write(philo, "is thinking");
-// 		if (!philo_eat(philo, data))
-// 			break ;
-// 		to_write(philo, "is sleeping");
-// 		smart_sleep(philo, data->time_to_sleep);
-// 	}
-// 	return (NULL);
-// }
